@@ -5,12 +5,15 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // model contain all app states
 type model struct {
 	actions []string
 	cursor  int
+	width   int
+	height  int
 }
 
 func initModel() model {
@@ -25,6 +28,9 @@ func (m model) Init() tea.Cmd {
 // Update react to messages (key press, etc.)
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -46,17 +52,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View return the dipslay screen
 func (m model) View() tea.View {
-	s := "What do you want?\n"
+	title := titleStyle.Render("LOGOUTUI")
 
+	var items []string
 	for i, action := range m.actions {
-		cursor := " "
+		cursor := "  "
+		style := itemStyle
 		if i == m.cursor {
-			cursor = ">"
+			cursor = "> "
+			style = selectedStyle
 		}
-		s += fmt.Sprintf("%s %s\n", cursor, action)
+		items = append(items, style.Render(cursor+action))
 	}
-	v := tea.NewView(s)
-	v.AltScreen = true // Display on fullscreen, like vim
+
+	list := lipgloss.JoinVertical(lipgloss.Left, items...)
+	body := lipgloss.JoinVertical(lipgloss.Left, title, list)
+	box := boxStyle.Render(body)
+
+	centered := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
+
+	v := tea.NewView(centered)
+	v.AltScreen = true
 	return v
 }
 
